@@ -1,13 +1,17 @@
+import enum
 from sqlalchemy import Column, Integer, String, Text, Boolean, Float
 from app.core.database import Base
 
+class MessType(str, enum.Enum):
+    VEG = "Veg"
+    NON_VEG = "Non-Veg"
+    BOTH = "Both"
 
 class Mess(Base):
     __tablename__ = "mess"
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=False)
-    type = Column(String(50))  # Veg / Non-Veg / Both
     description = Column(Text)
     address = Column(Text)
     phone_number = Column(String(20))
