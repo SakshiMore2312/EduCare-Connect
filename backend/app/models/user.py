@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import enum
@@ -8,8 +8,7 @@ from app.core.database import Base
 
 class UserRole(str, enum.Enum):
     ADMIN = "admin"
-    STUDENT = "student"
-    PROVIDER = "provider"
+    USER = "user"
 
 
 class User(Base):
@@ -22,15 +21,18 @@ class User(Base):
 
     hashed_password = Column(String(255), nullable=False)
 
-    role = Column(Enum(UserRole), default=UserRole.STUDENT, nullable=False)
+    role = Column(
+        Enum(UserRole, name="user_role_enum"),
+        nullable=False,
+        default=UserRole.USER
+    )
 
-    is_active = Column(Boolean, default=True)
+    is_active = Column(Boolean, nullable=False, default=True)
 
-    # link to optional organization
-    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=True)
-    organization = relationship("Organization", back_populates="users")
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 
-    created_at = Column(DateTime, default=datetime.utcnow)
-    reviews = relationship("Review", back_populates="user", cascade="all, delete-orphan")
-    # Future relationships (add when needed)
-    # reviews = relationship("Review", back_populates="user")
+    reviews = relationship(
+        "Review",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )

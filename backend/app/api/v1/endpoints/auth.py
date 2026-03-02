@@ -37,77 +37,29 @@ MIN_PASSWORD_LENGTH = 8
 MAX_PASSWORD_LENGTH = 128
 
 
-# VALIDATION HELPERS
-def validate_password(password: str) -> str:
-    if not password:
-        raise ValidationError("Password is required")
 
-    if len(password) < MIN_PASSWORD_LENGTH:
-        raise ValidationError(f"Password must be at least {MIN_PASSWORD_LENGTH} characters")
-
-    if len(password) > MAX_PASSWORD_LENGTH:
-        raise ValidationError("Password too long")
-
-    return password
-
-
-def validate_email(email: str) -> str:
-    if not email:
-        raise ValidationError("Email is required")
-
-    email = email.lower().strip()
-
-    email_pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
-    if not re.match(email_pattern, email):
-        raise ValidationError("Invalid email format")
-
-    return email
-
-
-def validate_username(username: str) -> str:
-    if not username:
-        raise ValidationError("Username is required")
-
-    username = username.strip()
-
-    if len(username) < 3:
-        raise ValidationError("Username must be at least 3 characters")
-
-    if len(username) > 30:
-        raise ValidationError("Username too long")
-
-    if not re.match(r"^[a-zA-Z0-9_]+$", username):
-        raise ValidationError("Username can only contain letters, numbers, and underscores")
-
-    return username
 
 # REGISTER
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register(user_data: UserCreate, db: Session = Depends(get_db)):
     try:
-        email = validate_email(user_data.email)
-        username = validate_username(user_data.username)
-        password = validate_password(user_data.password)
+        # Normalize email
+        email = user_data.email.lower().strip()
 
-        # Check uniqueness
-        existing = (
-            db.query(User)
-            .filter((User.email == email) | (User.username == username))
-            .first()
-        )
-
+        # Check if email already exists
+        existing = db.query(User).filter(User.email == email).first()
         if existing:
-            if existing.email == email:
-                raise ConflictError("Email already registered")
-            raise ConflictError("Username already taken")
+            raise ConflictError("Email already registered")
 
+        # Hash password
+        hashed_password = get_password_hash(user_data.password)
+
+        # Create user
         db_user = User(
+            full_name=user_data.full_name.strip(),
             email=email,
-            username=username,
-            hashed_password=get_password_hash(password),
-            full_name=user_data.full_name.strip() if user_data.full_name else None,
-            organization_id=user_data.organization_id,
-            role=UserRole.USER,
+            hashed_password=hashed_password,
+            role=UserRole.USER,  # force default role
             is_active=True,
         )
 
@@ -115,49 +67,39 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(db_user)
 
-        logger.info(f"User registered: {db_user.id}")
+        logger.info(f"User registered successfully: {db_user.id}")
 
-        return db_user
+        return UserResponse.model_validate(db_user)
 
-    except (ValidationError, ConflictError):
+    except ConflictError:
         raise
     except SQLAlchemyError as e:
         db.rollback()
-        logger.error(f"DB error during registration: {e}")
+        logger.error(f"Database error during registration: {e}")
         raise
     except Exception as e:
         db.rollback()
-        logger.error(f"Unexpected error during registration: {e}")
+        logger.error(f"Unexpected registration error: {e}")
         raise
-
 
 # LOGIN
 @router.post("/login", response_model=Token)
 async def login(credentials: UserLogin, db: Session = Depends(get_db)):
     try:
-        username = credentials.username.strip()
+        email = credentials.email.lower().strip()
 
-        user = db.query(User).filter(User.username == username).first()
+        # Find user by email
+        user = db.query(User).filter(User.email == email).first()
 
-        # Timing attack safe check
+        # Validate credentials
         if not user or not verify_password(credentials.password, user.hashed_password):
-            logger.warning(f"Failed login attempt for: {username}")
-            raise UnauthorizedError("Incorrect username or password")
+            logger.warning(f"Failed login attempt for: {email}")
+            raise UnauthorizedError("Incorrect email or password")
 
         if not user.is_active:
             raise ForbiddenError("User account is inactive")
 
-        # Organization auth policy check
-        if user.organization_id:
-            org = db.query(Organization).filter(
-                Organization.id == user.organization_id
-            ).first()
-
-            if org and str(getattr(org, "auth_policy", "")).upper() == "SSO_ONLY":
-                raise ForbiddenError(
-                    "This organization requires SSO login."
-                )
-
+        # Create tokens
         access_token_expires = timedelta(
             minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
         )
@@ -175,13 +117,12 @@ async def login(credentials: UserLogin, db: Session = Depends(get_db)):
             data={"sub": str(user.id)}
         )
 
-        logger.info(f"User logged in: {user.id}")
+        logger.info(f"User logged in successfully: {user.id}")
 
         return {
             "access_token": access_token,
             "refresh_token": refresh_token,
             "token_type": "bearer",
-            "user": UserResponse.model_validate(user),
         }
 
     except (UnauthorizedError, ForbiddenError):
@@ -189,7 +130,6 @@ async def login(credentials: UserLogin, db: Session = Depends(get_db)):
     except Exception as e:
         logger.error(f"Login error: {e}")
         raise UnauthorizedError("Login failed")
-
 
 # REFRESH TOKEN
 @router.post("/refresh", response_model=RefreshTokenResponse)

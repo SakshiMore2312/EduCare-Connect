@@ -7,11 +7,11 @@ from app.models.user import UserRole
 class UserBase(BaseModel):
     full_name: str = Field(..., min_length=1, max_length=255)
     email: EmailStr
-    organization_id: Optional[int] = None
 
 
 class UserCreate(UserBase):
     password: str = Field(..., min_length=8, max_length=128)
+    role: Optional[UserRole] = UserRole.USER
 
 
 class UserSelfUpdate(BaseModel):
@@ -29,8 +29,10 @@ class ChangePasswordRequest(BaseModel):
     new_password: str = Field(..., min_length=8, max_length=128)
 
 
-class UserResponse(UserBase):
+class UserResponse(BaseModel):
     id: int
+    full_name: str
+    email: EmailStr
     role: UserRole
     is_active: bool
     created_at: datetime

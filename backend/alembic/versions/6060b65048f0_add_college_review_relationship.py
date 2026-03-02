@@ -21,7 +21,8 @@ def upgrade() -> None:
 
     schooltype_enum = sa.Enum('GOVERNMENT', 'PRIVATE', name='schooltype')
     boardtype_enum = sa.Enum('CBSE', 'ICSE', 'STATE', name='boardtype')
-    userrole_enum = sa.Enum('ADMIN', 'STUDENT', 'PROVIDER', name='userrole')
+    # simplified user role enum – ADMIN and USER only
+    userrole_enum = sa.Enum('ADMIN', 'USER', name='userrole')
 
     schooltype_enum.create(op.get_bind(), checkfirst=True)
     boardtype_enum.create(op.get_bind(), checkfirst=True)

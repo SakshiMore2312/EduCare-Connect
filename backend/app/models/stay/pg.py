@@ -37,11 +37,11 @@ class PG(Base):
     room_type = Column(Enum(RoomType), nullable=False, default=RoomType.SINGLE, index=True)
 
     # Reviews relationship
-    reviews = relationship(
+    '''reviews = relationship(
         "Review",
         back_populates="pg",
         cascade="all, delete-orphan"
-    )
+    )'''
 
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

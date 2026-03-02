@@ -13,4 +13,4 @@ class Organization(Base):
     auth_policy = Column(String(50), default="STANDARD", nullable=False)
 
     # users belonging to this organization
-    users = relationship("User", back_populates="organization")
+    #users = relationship("User", back_populates="organization")

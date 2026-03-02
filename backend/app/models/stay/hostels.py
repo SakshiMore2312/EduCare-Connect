@@ -1,5 +1,5 @@
 import enum
-from sqlalchemy import Column, Integer, String, Text, Boolean, Enum, DateTime, func
+from sqlalchemy import Column, Integer, String, Text, Boolean, Enum, DateTime, func, ForeignKey
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 from sqlalchemy.orm import relationship
@@ -48,3 +48,5 @@ class Hostel(Base):
 
     # Soft delete
     is_active = Column(Boolean, default=True, nullable=False)
+
+    mess_id = Column(Integer, ForeignKey("mess.id", ondelete="SET NULL"), nullable=True) 

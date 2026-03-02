@@ -131,7 +131,8 @@ def _provision_user(db: Session, claims: dict):
         username=username,
         full_name=claims.get("name"),
         hashed_password=get_password_hash(secrets.token_urlsafe(32)),
-        role=UserRole.STUDENT,
+        # only two roles now: ADMIN and USER – assign new SSO sign‑ups as USER
+        role=UserRole.USER,
         is_active=True,
         auth_method="SSO",
         idp_issuer=GOOGLE_ISSUER,
