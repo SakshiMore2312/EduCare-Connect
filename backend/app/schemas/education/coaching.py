@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field, EmailStr, HttpUrl
 from typing import Optional
 from datetime import datetime
-from backend.app.models.education.coaching import CoachingType
+from app.models.education.coaching import CoachingType
 
 
 class CoachingBase(BaseModel):
@@ -19,7 +19,6 @@ class CoachingBase(BaseModel):
     batch_timings: Optional[str] = None
     fees: Optional[str] = Field(None, max_length=100)
     faculty_details: Optional[str] = None
-    reviews: Optional[str] = None
 
 class CoachingCreate(CoachingBase):
     pass
@@ -39,7 +38,6 @@ class CoachingUpdate(BaseModel):
     batch_timings: Optional[str] = None
     fees: Optional[str] = None
     faculty_details: Optional[str] = None
-    reviews: Optional[str] = None
 
 class CoachingResponse(CoachingBase):
     id: int

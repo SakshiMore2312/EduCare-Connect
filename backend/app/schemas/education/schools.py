@@ -2,8 +2,8 @@ from pydantic import BaseModel, Field, EmailStr, HttpUrl
 from typing import Optional
 from datetime import datetime
 
-from backend.app.models.education.schools import SchoolType
-from backend.app.models.education.schools import BoardType
+from app.models.education.schools import SchoolType
+from app.models.education.schools import BoardType
 
 class SchoolBase(BaseModel):
     name: str = Field(..., min_length=3, max_length=255)
@@ -22,7 +22,6 @@ class SchoolBase(BaseModel):
     medium_of_instruction: Optional[str] = Field(None, max_length=100)
     classes_offered: Optional[str] = Field(None, max_length=255)
     fees: Optional[str] = Field(None, max_length=100)
-    reviews: Optional[str] = None
 
 class SchoolCreate(SchoolBase):
     pass
@@ -44,7 +43,6 @@ class SchoolUpdate(BaseModel):
     medium_of_instruction: Optional[str] = Field(None, max_length=100)
     classes_offered: Optional[str] = Field(None, max_length=255)
     fees: Optional[str] = Field(None, max_length=100)
-    reviews: Optional[str] = None
 
 class SchoolResponse(SchoolBase):
     id: int

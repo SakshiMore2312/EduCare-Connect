@@ -3,24 +3,21 @@ from sqlalchemy import Column, Integer, String, Text, Enum, DateTime, Boolean, f
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
-# School Type Enum
+# Enums
 class SchoolType(str, enum.Enum):
     GOVERNMENT = "Government"
     PRIVATE = "Private"
 
-
-# Board Enum
 class BoardType(str, enum.Enum):
     CBSE = "CBSE"
     ICSE = "ICSE"
     STATE = "State"
 
-
 class School(Base):
     __tablename__ = "schools"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(255), nullable=False, index=True, unique=True)
+    name = Column(String(255), nullable=False, unique=True, index=True)
     type = Column(Enum(SchoolType), nullable=False, default=SchoolType.PRIVATE, index=True)
     board = Column(Enum(BoardType), nullable=True, index=True)
 
@@ -32,12 +29,16 @@ class School(Base):
     email = Column(String(255), nullable=True, unique=True, index=True)
     website = Column(String(255), nullable=True)
     google_maps_link = Column(Text, nullable=True)
-    medium_of_instruction = Column(String(100), nullable=True)
-    classes_offered = Column(String(255), nullable=True)
+    medium_of_instruction = Column(String(100), nullable=True)  # Can store "English", "Hindi" etc.
+    classes_offered = Column(String(255), nullable=True)       # Can store "Nursery to Class 10"
     fees = Column(String(100), nullable=True)
 
-    # Reviews relationship
-    reviews = relationship("Review", back_populates="school", cascade="all, delete-orphan")
+    # Reviews relationship: list of Review objects
+    reviews = relationship(
+        "Review",
+        back_populates="school",
+        cascade="all, delete-orphan"
+    )
 
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

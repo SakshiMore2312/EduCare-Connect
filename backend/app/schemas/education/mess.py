@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field, HttpUrl
 from typing import Optional
 from datetime import datetime
-from backend.app.models.education.mess import MessType
+from app.models.education.mess import MessType
 
 class MessBase(BaseModel):
     name: str = Field(..., min_length=3, max_length=255)
@@ -14,7 +14,6 @@ class MessBase(BaseModel):
     timing: Optional[str] = None
     home_delivery_available: Optional[bool] = None
     hygiene_rating: Optional[float] = Field(None, ge=0, le=5)
-    reviews: Optional[str] = None
 
 class MessCreate(MessBase):
     pass
@@ -30,7 +29,6 @@ class MessUpdate(BaseModel):
     timing: Optional[str] = None
     home_delivery_available: Optional[bool] = None
     hygiene_rating: Optional[float] = Field(None, ge=0, le=5)
-    reviews: Optional[str] = None
 
 class MessResponse(MessBase):
     id: int
