@@ -1,5 +1,5 @@
 import enum
-from sqlalchemy import Column, Integer, String, Text, Boolean, Enum, DateTime, func, ForeignKey
+from sqlalchemy import Float, Column, Integer, String, Text, Boolean, Enum, DateTime, func, ForeignKey
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 from sqlalchemy.orm import relationship
@@ -25,6 +25,11 @@ class Hostel(Base):
     name = Column(String(255), nullable=False, index=True, unique=True)
     description = Column(Text, nullable=True)
     address = Column(Text, nullable=False)
+
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
+    deposit = Column(Integer, nullable=True)
+    ac_available = Column(Boolean, default=False)
     phone_number = Column(String(50), nullable=False, index=True)
     email = Column(String(255), nullable=True, unique=True, index=True)
     website = Column(String(255), nullable=True)

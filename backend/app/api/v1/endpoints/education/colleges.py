@@ -1,4 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
+from app.models.education.review import Review
+from app.schemas.education.review import ReviewCreate, ReviewResponse
+
+from app.core.logger import logger
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -18,7 +22,7 @@ router = APIRouter(
 )
 
 @router.get("/", response_model=List[CollegeResponse])
-def get_colleges(
+async def get_colleges(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
     db: Session = Depends(get_db),
@@ -28,7 +32,7 @@ def get_colleges(
     return colleges
 
 @router.get("/{college_id}", response_model=CollegeResponse)
-def get_college(
+async def get_college(
     college_id: int,
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
@@ -44,7 +48,7 @@ def get_college(
     return college
 
 @router.post("/", response_model=CollegeResponse, status_code=201)
-def create_college(
+async def create_college(
     college_data: CollegeCreate,
     db: Session = Depends(get_db),
     current_user = Depends(require_roles(["ADMIN"]))
@@ -87,7 +91,7 @@ def create_college(
     return college
 
 @router.patch("/{college_id}", response_model=CollegeResponse)
-def update_college(
+async def update_college(
     college_id: int,
     college_data: CollegeUpdate,
     db: Session = Depends(get_db),
@@ -139,7 +143,7 @@ def update_college(
     return college
 
 @router.delete("/{college_id}", status_code=204)
-def delete_college(
+async def delete_college(
     college_id: int,
     db: Session = Depends(get_db),
     current_user = Depends(require_roles(["ADMIN"]))
@@ -157,3 +161,41 @@ def delete_college(
 
     return None
 
+
+
+# ------------------- REVIEWS -------------------
+@router.get("/{college_id}/reviews", response_model=List[ReviewResponse])
+async def get_college_reviews(
+    college_id: int,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100),
+    db: Session = Depends(get_db)
+):
+    reviews = db.query(Review).filter(
+        Review.college_id == college_id, Review.is_active == True
+    ).offset(skip).limit(limit).all()
+    return reviews
+
+
+@router.post("/{college_id}/reviews", response_model=ReviewResponse, status_code=status.HTTP_201_CREATED)
+async def create_college_review(
+    college_id: int,
+    review_data: ReviewCreate,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    entity = db.query(College).filter(College.id == college_id).first()
+    if not entity:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="College not found")
+        
+    review_dict = review_data.model_dump()
+    review_dict["user_id"] = current_user.id
+    review_dict["college_id"] = college_id
+    
+    review = Review(**review_dict)
+    db.add(review)
+    db.commit()
+    db.refresh(review)
+    
+    logger.info(f"Review added to College {college_id} by user {current_user.id}")
+    return review

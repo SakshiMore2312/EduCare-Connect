@@ -1,5 +1,5 @@
 import enum
-from sqlalchemy import Column, Integer, String, Text, Enum, DateTime, Boolean, func
+from sqlalchemy import Float, Column, Integer, String, Text, Enum, DateTime, Boolean, func
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -25,6 +25,9 @@ class School(Base):
     accreditation_grade = Column(String(50), nullable=True, index=True)
     description = Column(Text, nullable=True)
     address = Column(Text, nullable=False)
+
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
     phone_number = Column(String(50), nullable=False, index=True)
     email = Column(String(255), nullable=True, unique=True, index=True)
     website = Column(String(255), nullable=True)
@@ -32,6 +35,9 @@ class School(Base):
     medium_of_instruction = Column(String(100), nullable=True)  # Can store "English", "Hindi" etc.
     classes_offered = Column(String(255), nullable=True)       # Can store "Nursery to Class 10"
     fees = Column(String(100), nullable=True)
+    duration = Column(String(100), nullable=True)
+    total_seats = Column(Integer, nullable=True)
+    available_seats = Column(Integer, nullable=True)
 
     # Reviews relationship: list of Review objects
     reviews = relationship(

@@ -1,4 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
+from app.models.education.review import Review
+from app.schemas.education.review import ReviewCreate, ReviewResponse
+
+from app.core.logger import logger
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -19,7 +23,7 @@ router = APIRouter(
 
 # ------------------- GET ALL -------------------
 @router.get("/", response_model=List[MessResponse])
-def get_mess_list(
+async def get_mess_list(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
     db: Session = Depends(get_db),
@@ -30,7 +34,7 @@ def get_mess_list(
 
 # ------------------- GET ONE -------------------
 @router.get("/{mess_id}", response_model=MessResponse)
-def get_mess(
+async def get_mess(
     mess_id: int,
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
@@ -46,7 +50,7 @@ def get_mess(
 
 # ------------------- CREATE -------------------
 @router.post("/", response_model=MessResponse, status_code=status.HTTP_201_CREATED)
-def create_mess(
+async def create_mess(
     mess_data: MessCreate,
     db: Session = Depends(get_db),
     current_user = Depends(require_roles(["ADMIN"]))
@@ -80,7 +84,7 @@ def create_mess(
 
 # ------------------- UPDATE -------------------
 @router.patch("/{mess_id}", response_model=MessResponse)
-def update_mess(
+async def update_mess(
     mess_id: int,
     mess_data: MessUpdate,
     db: Session = Depends(get_db),
@@ -124,7 +128,7 @@ def update_mess(
 
 # ------------------- DELETE -------------------
 @router.delete("/{mess_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_mess(
+async def delete_mess(
     mess_id: int,
     db: Session = Depends(get_db),
     current_user = Depends(require_roles(["ADMIN"]))
@@ -140,3 +144,41 @@ def delete_mess(
     db.delete(mess)
     db.commit()
     return None
+
+
+# ------------------- REVIEWS -------------------
+@router.get("/{mess_id}/reviews", response_model=List[ReviewResponse])
+async def get_mess_reviews(
+    mess_id: int,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100),
+    db: Session = Depends(get_db)
+):
+    reviews = db.query(Review).filter(
+        Review.mess_id == mess_id, Review.is_active == True
+    ).offset(skip).limit(limit).all()
+    return reviews
+
+
+@router.post("/{mess_id}/reviews", response_model=ReviewResponse, status_code=status.HTTP_201_CREATED)
+async def create_mess_review(
+    mess_id: int,
+    review_data: ReviewCreate,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    entity = db.query(Mess).filter(Mess.id == mess_id).first()
+    if not entity:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Mess not found")
+        
+    review_dict = review_data.model_dump()
+    review_dict["user_id"] = current_user.id
+    review_dict["mess_id"] = mess_id
+    
+    review = Review(**review_dict)
+    db.add(review)
+    db.commit()
+    db.refresh(review)
+    
+    logger.info(f"Review added to Mess {mess_id} by user {current_user.id}")
+    return review

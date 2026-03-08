@@ -19,6 +19,20 @@ class User(Base):
     full_name = Column(String(255), nullable=False)
     email = Column(String(255), unique=True, index=True, nullable=False)
 
+    phone = Column(String(20), nullable=True)
+    blood_group = Column(String(10), nullable=True)
+    emergency_contact_1 = Column(String(20), nullable=True)
+    emergency_contact_2 = Column(String(20), nullable=True)
+    profile_image = Column(String(500), nullable=True)
+
+    # Social Handles
+    social_instagram = Column(String(255), nullable=True)
+    social_linkedin = Column(String(255), nullable=True)
+    social_github = Column(String(255), nullable=True)
+
+    # Notification & Permission Settings
+    push_notifications = Column(Boolean, nullable=False, default=True)
+
     hashed_password = Column(String(255), nullable=False)
 
     role = Column(

@@ -1,5 +1,5 @@
 import enum
-from sqlalchemy import Column, Integer, String, Text, Boolean, Enum, DateTime, func
+from sqlalchemy import Float, Column, Integer, String, Text, Boolean, Enum, DateTime, func
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -24,6 +24,11 @@ class PG(Base):
     name = Column(String(255), nullable=False, index=True, unique=True)
     description = Column(Text, nullable=True)
     address = Column(Text, nullable=False)
+
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
+    deposit = Column(Integer, nullable=True)
+    ac_available = Column(Boolean, default=False)
     phone_number = Column(String(50), nullable=False, index=True)
     email = Column(String(255), nullable=True, unique=True, index=True)
     google_maps_link = Column(Text, nullable=True)
@@ -37,11 +42,11 @@ class PG(Base):
     room_type = Column(Enum(RoomType), nullable=False, default=RoomType.SINGLE, index=True)
 
     # Reviews relationship
-    '''reviews = relationship(
+    reviews = relationship(
         "Review",
         back_populates="pg",
         cascade="all, delete-orphan"
-    )'''
+    )
 
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

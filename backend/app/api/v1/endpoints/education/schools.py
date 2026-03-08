@@ -1,4 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
+from app.models.education.review import Review
+from app.schemas.education.review import ReviewCreate, ReviewResponse
+
+from app.core.logger import logger
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -19,7 +23,7 @@ router = APIRouter(
 
 # ------------------- GET ALL -------------------
 @router.get("/", response_model=List[SchoolResponse])
-def get_schools(
+async def get_schools(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
     db: Session = Depends(get_db),
@@ -30,7 +34,7 @@ def get_schools(
 
 # ------------------- GET ONE -------------------
 @router.get("/{school_id}", response_model=SchoolResponse)
-def get_school(
+async def get_school(
     school_id: int,
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
@@ -46,7 +50,7 @@ def get_school(
 
 # ------------------- CREATE -------------------
 @router.post("/", response_model=SchoolResponse, status_code=status.HTTP_201_CREATED)
-def create_school(
+async def create_school(
     school_data: SchoolCreate,
     db: Session = Depends(get_db),
     current_user = Depends(require_roles(["ADMIN"]))
@@ -89,7 +93,7 @@ def create_school(
 
 # ------------------- UPDATE -------------------
 @router.patch("/{school_id}", response_model=SchoolResponse)
-def update_school(
+async def update_school(
     school_id: int,
     school_data: SchoolUpdate,
     db: Session = Depends(get_db),
@@ -141,7 +145,7 @@ def update_school(
 
 # ------------------- DELETE -------------------
 @router.delete("/{school_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_school(
+async def delete_school(
     school_id: int,
     db: Session = Depends(get_db),
     current_user = Depends(require_roles(["ADMIN"]))
@@ -158,3 +162,40 @@ def delete_school(
     school.is_active = False
     db.commit()
     return None
+
+# ------------------- REVIEWS -------------------
+@router.get("/{school_id}/reviews", response_model=List[ReviewResponse])
+async def get_school_reviews(
+    school_id: int,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100),
+    db: Session = Depends(get_db)
+):
+    reviews = db.query(Review).filter(
+        Review.school_id == school_id, Review.is_active == True
+    ).offset(skip).limit(limit).all()
+    return reviews
+
+
+@router.post("/{school_id}/reviews", response_model=ReviewResponse, status_code=status.HTTP_201_CREATED)
+async def create_school_review(
+    school_id: int,
+    review_data: ReviewCreate,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    entity = db.query(School).filter(School.id == school_id).first()
+    if not entity:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="School not found")
+        
+    review_dict = review_data.model_dump()
+    review_dict["user_id"] = current_user.id
+    review_dict["school_id"] = school_id
+    
+    review = Review(**review_dict)
+    db.add(review)
+    db.commit()
+    db.refresh(review)
+    
+    logger.info(f"Review added to School {school_id} by user {current_user.id}")
+    return review

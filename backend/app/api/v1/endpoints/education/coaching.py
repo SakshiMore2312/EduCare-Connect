@@ -1,4 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
+from app.models.education.review import Review
+from app.schemas.education.review import ReviewCreate, ReviewResponse
+
+from app.core.logger import logger
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -19,7 +23,7 @@ router = APIRouter(
 
 # ------------------- GET ALL -------------------
 @router.get("/", response_model=List[CoachingResponse])
-def get_coaching_classes(
+async def get_coaching_classes(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
     db: Session = Depends(get_db),
@@ -30,7 +34,7 @@ def get_coaching_classes(
 
 # ------------------- GET ONE -------------------
 @router.get("/{coaching_id}", response_model=CoachingResponse)
-def get_coaching_class(
+async def get_coaching_class(
     coaching_id: int,
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
@@ -46,7 +50,7 @@ def get_coaching_class(
 
 # ------------------- CREATE -------------------
 @router.post("/", response_model=CoachingResponse, status_code=status.HTTP_201_CREATED)
-def create_coaching_class(
+async def create_coaching_class(
     coaching_data: CoachingCreate,
     db: Session = Depends(get_db),
     current_user = Depends(require_roles(["ADMIN"]))
@@ -80,7 +84,7 @@ def create_coaching_class(
 
 # ------------------- UPDATE -------------------
 @router.patch("/{coaching_id}", response_model=CoachingResponse)
-def update_coaching_class(
+async def update_coaching_class(
     coaching_id: int,
     coaching_data: CoachingUpdate,
     db: Session = Depends(get_db),
@@ -124,7 +128,7 @@ def update_coaching_class(
 
 # ------------------- DELETE -------------------
 @router.delete("/{coaching_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_coaching_class(
+async def delete_coaching_class(
     coaching_id: int,
     db: Session = Depends(get_db),
     current_user = Depends(require_roles(["ADMIN"]))
@@ -140,3 +144,41 @@ def delete_coaching_class(
     db.delete(coaching)
     db.commit()
     return None
+
+
+# ------------------- REVIEWS -------------------
+@router.get("/{coaching_id}/reviews", response_model=List[ReviewResponse])
+async def get_coaching_reviews(
+    coaching_id: int,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100),
+    db: Session = Depends(get_db)
+):
+    reviews = db.query(Review).filter(
+        Review.coaching_id == coaching_id, Review.is_active == True
+    ).offset(skip).limit(limit).all()
+    return reviews
+
+
+@router.post("/{coaching_id}/reviews", response_model=ReviewResponse, status_code=status.HTTP_201_CREATED)
+async def create_coaching_review(
+    coaching_id: int,
+    review_data: ReviewCreate,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    entity = db.query(Coaching).filter(Coaching.id == coaching_id).first()
+    if not entity:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Coaching not found")
+        
+    review_dict = review_data.model_dump()
+    review_dict["user_id"] = current_user.id
+    review_dict["coaching_id"] = coaching_id
+    
+    review = Review(**review_dict)
+    db.add(review)
+    db.commit()
+    db.refresh(review)
+    
+    logger.info(f"Review added to Coaching {coaching_id} by user {current_user.id}")
+    return review

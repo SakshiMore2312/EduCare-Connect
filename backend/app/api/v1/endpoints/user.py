@@ -80,10 +80,21 @@ async def update_my_profile(
     current_user: User = Depends(get_current_user),
 ):
     try:
-        if update_data.full_name:
+        if update_data.full_name is not None:
             if len(update_data.full_name.strip()) < 2:
                 raise ValidationError("Full name too short")
             current_user.full_name = update_data.full_name.strip()
+        
+        if update_data.phone is not None:
+            current_user.phone = update_data.phone
+        if update_data.blood_group is not None:
+            current_user.blood_group = update_data.blood_group
+        if update_data.emergency_contact_1 is not None:
+            current_user.emergency_contact_1 = update_data.emergency_contact_1
+        if update_data.emergency_contact_2 is not None:
+            current_user.emergency_contact_2 = update_data.emergency_contact_2
+        if update_data.profile_image is not None:
+            current_user.profile_image = update_data.profile_image
 
         db.commit()
         db.refresh(current_user)
